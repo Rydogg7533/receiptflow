@@ -71,7 +71,7 @@ export default function Home() {
     )
   }
 
-  const isSubscribed = profile?.subscription_status === 'active'
+  const isSubscribed = profile?.subscription_status === 'active' || profile?.subscription_status === 'inactive' || !profile?.subscription_status
 
   return (
     <div className="min-h-screen bg-gray-50">
