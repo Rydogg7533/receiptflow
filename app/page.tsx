@@ -6,6 +6,7 @@ import { UploadZone } from '@/components/UploadZone'
 import { DocumentList } from '@/components/DocumentList'
 import { PricingCard } from '@/components/PricingCard'
 import { LogOut, FileText } from 'lucide-react'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { useEffect, useState } from 'react'
 
 interface Profile {
@@ -74,19 +75,28 @@ export default function Home() {
   const isSubscribed = profile?.subscription_status === 'active' || profile?.subscription_status === 'inactive' || !profile?.subscription_status
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center">
             <FileText className="h-8 w-8 text-blue-600 mr-3" />
-            <h1 className="text-2xl font-bold text-gray-900">ReceiptFlow</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">ReceiptFlow</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">{user.email}</span>
+            <ThemeToggle />
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfY20Fi4CaLbetCcnvZ2O7sjK3R555QjRMs1eun9SgpSN2I_g/viewform"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+            >
+              Give feedback
+            </a>
+            <span className="text-sm text-gray-600 dark:text-gray-300">{user.email}</span>
             <button
               onClick={signOut}
-              className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign out
@@ -101,8 +111,8 @@ export default function Home() {
           {/* Left Column - Upload & Pricing */}
           <div className="lg:col-span-1 space-y-6">
             {isSubscribed ? (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                   Upload Receipt
                 </h2>
                 <UploadZone />
@@ -124,7 +134,7 @@ export default function Home() {
 
           {/* Documents List */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Your Documents
               </h2>
