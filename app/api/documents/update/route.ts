@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     }
 
     const allowed: any = {}
-    const allowKeys = ['document_type', 'payment_status', 'due_date', 'balance_due', 'needs_review', 'confidence_overall']
+    const allowKeys = ['document_type', 'payment_status', 'due_date', 'balance_due', 'needs_review', 'confidence_overall', 'extracted_data']
     for (const k of allowKeys) {
       if (k in patch) allowed[k] = patch[k]
     }

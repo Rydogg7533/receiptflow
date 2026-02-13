@@ -27,6 +27,9 @@ export function DocumentList() {
   const [exportingSheets, setExportingSheets] = useState(false)
   const [lastExport, setLastExport] = useState<{ batchId: string; exportedCount: number; spreadsheetUrl?: string } | null>(null)
   const [undoing, setUndoing] = useState(false)
+  const [editDoc, setEditDoc] = useState<Document | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editForm, setEditForm] = useState<{ vendor: string; date: string; total: string; due_date: string; balance_due: string }>({ vendor: '', date: '', total: '', due_date: '', balance_due: '' })
   const { user } = useSupabase()
 
   type View = 'to_export' | 'archived' | 'trash'
@@ -330,6 +333,153 @@ export function DocumentList() {
 
   return (
     <div className="space-y-4">
+      {editDoc ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Review / Edit</div>
+                <div className="text-xs text-gray-500 truncate max-w-[420px]">{editDoc.filename}</div>
+              </div>
+              <button
+                className="text-sm text-gray-600 hover:text-gray-900"
+                onClick={() => setEditDoc(null)}
+                disabled={editSaving}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-4 px-4 py-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700">Vendor</label>
+                <input
+                  value={editForm.vendor}
+                  onChange={(e) => setEditForm((p) => ({ ...p, vendor: e.target.value }))}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Date</label>
+                  <input
+                    value={editForm.date}
+                    onChange={(e) => setEditForm((p) => ({ ...p, date: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Total</label>
+                  <input
+                    value={editForm.total}
+                    onChange={(e) => setEditForm((p) => ({ ...p, total: e.target.value }))}
+                    placeholder="e.g. 12.34"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Due date</label>
+                  <input
+                    value={editForm.due_date}
+                    onChange={(e) => setEditForm((p) => ({ ...p, due_date: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Balance due</label>
+                  <input
+                    value={editForm.balance_due}
+                    onChange={(e) => setEditForm((p) => ({ ...p, balance_due: e.target.value }))}
+                    placeholder="e.g. 0 or 123.45"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-md bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+                Saving does not delete any previously exported sheets. If you re-open and export again, you may get duplicates across sheets.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
+              <button
+                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                onClick={() => setEditDoc(null)}
+                disabled={editSaving}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                disabled={editSaving}
+                onClick={async () => {
+                  try {
+                    setEditSaving(true)
+
+                    const existing = (editDoc.extracted_data || {}) as any
+                    const nextExtracted = {
+                      ...existing,
+                      vendor: editForm.vendor || null,
+                      date: editForm.date || null,
+                      total: editForm.total === '' ? null : Number(editForm.total),
+                      due_date: editForm.due_date || null,
+                      balance_due: editForm.balance_due === '' ? null : Number(editForm.balance_due),
+                    }
+
+                    // Recompute needs_review using the same basic rules as /api/extract
+                    const subtotal = Number(nextExtracted?.subtotal)
+                    const tax = Number(nextExtracted?.tax)
+                    const tip = nextExtracted?.tip !== null && nextExtracted?.tip !== undefined ? Number(nextExtracted?.tip) : 0
+                    const total = Number(nextExtracted?.total)
+                    const hasTotals = Number.isFinite(total)
+                    const reconcile = Number.isFinite(subtotal) && Number.isFinite(tax) && Number.isFinite(tip) && hasTotals
+                      ? Math.abs((subtotal + tax + tip) - total) <= 0.05
+                      : true
+
+                    const docType = (nextExtracted?.document_type || editDoc.document_type || '').toString().toLowerCase()
+                    const dueDate = nextExtracted?.due_date
+                    const balanceDue = nextExtracted?.balance_due
+                    const invoiceMissingFields = docType === 'invoice' && (!dueDate || balanceDue === null || balanceDue === undefined || balanceDue === '')
+                    const needs_review = !reconcile || !nextExtracted?.vendor || !nextExtracted?.date || !hasTotals || invoiceMissingFields
+
+                    const patch: any = {
+                      extracted_data: nextExtracted,
+                      due_date: nextExtracted?.due_date ?? null,
+                      balance_due: nextExtracted?.balance_due ?? null,
+                      needs_review,
+                    }
+
+                    const res = await fetch('/api/documents/update', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ documentId: editDoc.id, patch }),
+                    })
+                    const json = await res.json().catch(() => null)
+                    if (!res.ok) throw new Error(json?.error || 'Save failed')
+
+                    setEditDoc(null)
+                    fetchDocuments()
+                  } catch (e) {
+                    console.error('save edit failed', e)
+                    alert(e instanceof Error ? e.message : 'Save failed')
+                  } finally {
+                    setEditSaving(false)
+                  }
+                }}
+              >
+                {editSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {lastExport ? (
         <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-4 py-3">
           <div className="text-sm text-gray-800">
@@ -577,6 +727,28 @@ export function DocumentList() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-3">
+                    {view !== 'trash' ? (
+                      <button
+                        onClick={() => {
+                          setEditDoc(doc)
+                          setEditForm({
+                            vendor: (doc.extracted_data?.vendor || '').toString(),
+                            date: (doc.extracted_data?.date || '').toString(),
+                            total: doc.extracted_data?.total !== null && doc.extracted_data?.total !== undefined ? String(doc.extracted_data.total) : '',
+                            due_date: (doc.due_date || doc.extracted_data?.due_date || '').toString(),
+                            balance_due:
+                              doc.balance_due !== null && doc.balance_due !== undefined && doc.balance_due !== ''
+                                ? String(doc.balance_due)
+                                : doc.extracted_data?.balance_due !== null && doc.extracted_data?.balance_due !== undefined && doc.extracted_data?.balance_due !== ''
+                                  ? String(doc.extracted_data.balance_due)
+                                  : '',
+                          })
+                        }}
+                        className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        Edit
+                      </button>
+                    ) : null}
                     {view === 'archived' ? (
                       doc.exported_at ? (
                         <button
