@@ -81,6 +81,19 @@ export function DocumentList() {
           a.click()
           window.URL.revokeObjectURL(url)
         }
+
+        // Prompt to archive exported docs
+        if (payload?.batchId && (payload?.exportedCount ?? 0) > 0) {
+          const ok = confirm(`Exported ${payload.exportedCount} document(s). Archive them now?`)
+          if (ok) {
+            await fetch('/api/documents/archive-batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ batchId: payload.batchId }),
+            })
+            fetchDocuments()
+          }
+        }
         return
       }
 
@@ -106,6 +119,19 @@ export function DocumentList() {
       if (!resp.ok) throw new Error(json?.details || json?.error || 'Sheets export failed')
       if (json?.spreadsheetUrl) {
         window.open(json.spreadsheetUrl, '_blank', 'noopener,noreferrer')
+      }
+
+      // Prompt to archive exported docs
+      if (json?.batchId && (json?.exportedCount ?? 0) > 0) {
+        const ok = confirm(`Exported ${json.exportedCount} document(s). Archive them now?`)
+        if (ok) {
+          await fetch('/api/documents/archive-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ batchId: json.batchId }),
+          })
+          fetchDocuments()
+        }
       }
     } catch (e) {
       console.error('Sheets export error:', e)

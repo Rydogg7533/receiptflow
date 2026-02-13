@@ -179,7 +179,7 @@ export async function POST() {
         .in('id', docs.map((d: any) => d.id))
     }
 
-    return NextResponse.json({ success: true, spreadsheetUrl: sheet.spreadsheetUrl, batchId: batch.id })
+    return NextResponse.json({ success: true, spreadsheetUrl: sheet.spreadsheetUrl, batchId: batch.id, exportedCount: docs.length })
   } catch (e: any) {
     console.error('Sheets export error:', e)
     return NextResponse.json({ error: 'Export failed', details: e?.message || String(e) }, { status: 500 })

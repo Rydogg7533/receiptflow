@@ -170,6 +170,9 @@ export async function GET(req: NextRequest) {
     // Return a simple multipart-ish response: JSON with both CSVs base64 encoded.
     // The client can download two files.
     const payload = {
+      success: true,
+      batchId: batch.id,
+      exportedCount: docs.length,
       documents: {
         filename: `documents-${new Date().toISOString().slice(0, 10)}.csv`,
         csv: documentsCsv,
