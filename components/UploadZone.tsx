@@ -1,7 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useState, useRef } from 'react'
 import { Upload, Loader2, File, X } from 'lucide-react'
 import { useSupabase } from './SupabaseProvider'
 
@@ -15,14 +14,29 @@ interface UploadingFile {
 export function UploadZone() {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
   const { user } = useSupabase()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const newFiles = Array.from(files).map(file => ({
+      id: Math.random().toString(36).substring(7),
+      file,
+      progress: 0,
+      status: 'uploading' as const,
+    }))
+
+    setUploadingFiles(prev => [...prev, ...newFiles])
+
+    // Upload each file
+    newFiles.forEach(file => {
+      uploadFile(file)
+    })
+  }
 
   const uploadFile = async (uploadingFile: UploadingFile) => {
     try {
-      // Update status to uploading
-      setUploadingFiles(prev =>
-        prev.map(f => f.id === uploadingFile.id ? { ...f, status: 'uploading' } : f)
-      )
-
       // Create form data
       const formData = new FormData()
       formData.append('file', uploadingFile.file)
@@ -34,7 +48,8 @@ export function UploadZone() {
       })
 
       if (!response.ok) {
-        throw new Error('Upload failed')
+        const errorText = await response.text()
+        throw new Error(errorText)
       }
 
       const data = await response.json()
@@ -48,6 +63,7 @@ export function UploadZone() {
       await extractData(data.documentId, uploadingFile.id)
 
     } catch (error) {
+      console.error('Upload error:', error)
       setUploadingFiles(prev =>
         prev.map(f => f.id === uploadingFile.id ? { ...f, status: 'error' } : f)
       )
@@ -63,7 +79,8 @@ export function UploadZone() {
       })
 
       if (!response.ok) {
-        throw new Error('Extraction failed')
+        const errorText = await response.text()
+        throw new Error(errorText)
       }
 
       setUploadingFiles(prev =>
@@ -76,36 +93,12 @@ export function UploadZone() {
       }, 3000)
 
     } catch (error) {
+      console.error('Extraction error:', error)
       setUploadingFiles(prev =>
         prev.map(f => f.id === fileId ? { ...f, status: 'error' } : f)
       )
     }
   }
-
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map(file => ({
-      id: Math.random().toString(36).substring(7),
-      file,
-      progress: 0,
-      status: 'uploading' as const,
-    }))
-
-    setUploadingFiles(prev => [...prev, ...newFiles])
-
-    // Upload each file
-    newFiles.forEach(file => {
-      uploadFile(file)
-    })
-  }, [user])
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
-      'application/pdf': ['.pdf'],
-    },
-    maxSize: 10 * 1024 * 1024, // 10MB
-  })
 
   const removeFile = (id: string) => {
     setUploadingFiles(prev => prev.filter(f => f.id !== id))
@@ -113,26 +106,28 @@ export function UploadZone() {
 
   return (
     <div className="space-y-4">
-      <label
-        {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors block ${
-          isDragActive
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400'
-        }`}
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        className="border-2 border-dashed border-gray-300 hover:border-gray-400 rounded-lg p-8 text-center cursor-pointer transition-colors"
       >
-        <input {...getInputProps()} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,.pdf"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
         <Upload className="mx-auto h-12 w-12 text-gray-400" />
         <p className="mt-2 text-sm font-medium text-gray-900">
-          {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
+          Click to select files
         </p>
         <p className="mt-1 text-xs text-gray-500">
-          or click to select files
+          or drag & drop here
         </p>
         <p className="mt-1 text-xs text-gray-400">
           PDF, PNG, JPG up to 10MB
         </p>
-      </label>
+      </div>
 
       {/* Uploading files list */}
       {uploadingFiles.length > 0 && (
