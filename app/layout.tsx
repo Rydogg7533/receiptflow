@@ -7,7 +7,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ReceiptFlow - AI Receipt Extraction',
+  title: 'ReceiptsFlow - AI Receipt Extraction',
   description: 'Extract data from receipts and invoices automatically using AI',
 }
 

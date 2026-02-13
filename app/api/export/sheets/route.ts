@@ -130,7 +130,7 @@ export async function POST() {
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
 
-    const sheet = await createSpreadsheet(accessToken, `ReceiptFlow Export ${new Date().toISOString().slice(0, 10)} (Batch ${String(batch.id).slice(0, 8)})`)
+    const sheet = await createSpreadsheet(accessToken, `ReceiptsFlow Export ${new Date().toISOString().slice(0, 10)} (Batch ${String(batch.id).slice(0, 8)})`)
 
     const docColumns = [
       'document_id',

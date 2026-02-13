@@ -9,7 +9,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center">
             <FileText className="h-8 w-8 text-blue-600 mr-2" />
-            <span className="text-xl font-bold text-gray-900">ReceiptFlow</span>
+            <span className="text-xl font-bold text-gray-900">ReceiptsFlow</span>
           </div>
           <div className="flex items-center space-x-4">
             <Link
@@ -154,7 +154,7 @@ export default function LandingPage() {
             Ready to Save Hours of Data Entry?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join hundreds of businesses that have automated their receipt processing with ReceiptFlow.
+            Join hundreds of businesses that have automated their receipt processing with ReceiptsFlow.
           </p>
           <Link
             href="/"
@@ -172,9 +172,9 @@ export default function LandingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <FileText className="h-6 w-6 text-blue-400 mr-2" />
-              <span className="text-lg font-semibold text-white">ReceiptFlow</span>
+              <span className="text-lg font-semibold text-white">ReceiptsFlow</span>
             </div>
-            <p className="text-sm">© 2024 ReceiptFlow. All rights reserved.</p>
+            <p className="text-sm">© 2024 ReceiptsFlow. All rights reserved.</p>
           </div>
         </div>
       </footer>

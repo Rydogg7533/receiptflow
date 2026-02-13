@@ -58,7 +58,7 @@ export default function Home() {
               <FileText className="h-16 w-16 text-blue-600" />
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              ReceiptFlow
+              ReceiptsFlow
             </h1>
             <p className="text-xl text-gray-600 mb-8">
               Extract data from receipts and invoices automatically using AI
@@ -81,7 +81,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center">
             <FileText className="h-8 w-8 text-blue-600 mr-3" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">ReceiptFlow</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">ReceiptsFlow</h1>
           </div>
           <div className="flex items-center space-x-4">
             <ThemeToggle />
