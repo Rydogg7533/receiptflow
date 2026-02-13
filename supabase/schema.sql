@@ -16,6 +16,11 @@ create table documents (
   status text default 'pending' check (status in ('pending', 'processing', 'completed', 'error')),
   extracted_data jsonb,
   error_message text,
+  -- Internal-only (do not expose to client): conversion telemetry
+  conversion_provider text,
+  pages_converted integer,
+  converted_at timestamp with time zone,
+  conversion_job_id text,
   created_at timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );

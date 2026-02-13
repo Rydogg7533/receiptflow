@@ -82,7 +82,14 @@ export async function POST(request: NextRequest) {
     const mimeType = document.file_type
 
     let dataUrl: string
+    let conversion_provider: string | null = null
+    let pages_converted: number | null = null
+    let converted_at: string | null = null
+
     if (mimeType === 'application/pdf') {
+      conversion_provider = 'cloudconvert'
+      pages_converted = 1
+      converted_at = new Date().toISOString()
       dataUrl = await pdfFirstPageToPngDataUrl(fileBuffer)
     } else {
       const base64 = fileBuffer.toString('base64')
@@ -144,6 +151,9 @@ Return ONLY valid JSON, no markdown formatting. If a field is not found, use nul
       .update({
         status: 'completed',
         extracted_data: extractedData,
+        conversion_provider,
+        pages_converted,
+        converted_at,
       })
       .eq('id', documentId)
 
