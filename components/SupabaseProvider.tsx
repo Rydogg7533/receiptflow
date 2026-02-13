@@ -7,7 +7,9 @@ import { User } from '@supabase/supabase-js'
 interface SupabaseContextType {
   user: User | null
   loading: boolean
-  signIn: (email: string) => Promise<void>
+  signInWithMagicLink: (email: string) => Promise<void>
+  signInWithPassword: (email: string, password: string) => Promise<void>
+  signUpWithPassword: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -38,9 +40,28 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string) => {
+  const signInWithMagicLink = async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    if (error) throw error
+  }
+
+  const signInWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (error) throw error
+  }
+
+  const signUpWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -53,7 +74,16 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SupabaseContext.Provider value={{ user, loading, signIn, signOut }}>
+    <SupabaseContext.Provider
+      value={{
+        user,
+        loading,
+        signInWithMagicLink,
+        signInWithPassword,
+        signUpWithPassword,
+        signOut,
+      }}
+    >
       {children}
     </SupabaseContext.Provider>
   )

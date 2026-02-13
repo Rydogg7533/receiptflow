@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import OpenAI from 'openai'
+import { pdfFirstPageToPngDataUrl } from '@/lib/pdf_convert_cloudconvert'
 
 // Lazy-load OpenAI client to avoid build-time errors
 let openai: OpenAI | null = null
@@ -75,11 +76,18 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to download file')
     }
 
-    // Convert to base64
-    const buffer = await fileData.arrayBuffer()
-    const base64 = Buffer.from(buffer).toString('base64')
+    // Convert into an image data URL for OpenAI Vision.
+    // PDFs must be converted to an image first.
+    const fileBuffer = Buffer.from(await fileData.arrayBuffer())
     const mimeType = document.file_type
-    const dataUrl = `data:${mimeType};base64,${base64}`
+
+    let dataUrl: string
+    if (mimeType === 'application/pdf') {
+      dataUrl = await pdfFirstPageToPngDataUrl(fileBuffer)
+    } else {
+      const base64 = fileBuffer.toString('base64')
+      dataUrl = `data:${mimeType};base64,${base64}`
+    }
 
     // Extract data using OpenAI
     const extraction = await getOpenAI().chat.completions.create({
