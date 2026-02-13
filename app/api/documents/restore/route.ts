@@ -33,7 +33,9 @@ export async function POST(req: Request) {
     const now = new Date().toISOString()
     const { error } = await supabase
       .from('documents')
-      .update({ trashed_at: null, updated_at: now })
+      // Restoring from Trash should always bring the doc back into view.
+      // In our 3-tab workflow, that means restoring into Archived.
+      .update({ trashed_at: null, archived_at: now, updated_at: now })
       .eq('id', documentId)
       .eq('user_id', session.user.id)
 
