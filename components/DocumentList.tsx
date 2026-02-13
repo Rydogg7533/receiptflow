@@ -501,8 +501,26 @@ export function DocumentList() {
                       {doc.status}
                     </span>
                     {doc.needs_review ? (
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                      <span className="inline-flex items-center gap-2 px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
                         needs review
+                        <button
+                          className="underline underline-offset-2"
+                          onClick={async () => {
+                            try {
+                              await fetch('/api/documents/mark-reviewed', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ documentId: doc.id }),
+                              })
+                              setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, needs_review: false } : d)))
+                            } catch (e) {
+                              console.error('mark reviewed failed', e)
+                              alert('Failed to mark reviewed')
+                            }
+                          }}
+                        >
+                          mark reviewed
+                        </button>
                       </span>
                     ) : null}
                   </div>
