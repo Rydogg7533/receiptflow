@@ -23,6 +23,8 @@ export function DocumentList() {
   const [loading, setLoading] = useState(true)
   const [googleConnected, setGoogleConnected] = useState(false)
   const [exportingSheets, setExportingSheets] = useState(false)
+  const [lastExport, setLastExport] = useState<{ batchId: string; exportedCount: number; spreadsheetUrl?: string } | null>(null)
+  const [undoing, setUndoing] = useState(false)
   const { user } = useSupabase()
 
   type View = 'active' | 'archived' | 'trash'
@@ -82,17 +84,15 @@ export function DocumentList() {
           window.URL.revokeObjectURL(url)
         }
 
-        // Prompt to archive exported docs
+        // Auto-archive after export (and keep undo info)
         if (payload?.batchId && (payload?.exportedCount ?? 0) > 0) {
-          const ok = confirm(`Exported ${payload.exportedCount} document(s). Archive them now?`)
-          if (ok) {
-            await fetch('/api/documents/archive-batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ batchId: payload.batchId }),
-            })
-            fetchDocuments()
-          }
+          await fetch('/api/documents/archive-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ batchId: payload.batchId }),
+          })
+          setLastExport({ batchId: payload.batchId, exportedCount: payload.exportedCount })
+          fetchDocuments()
         }
         return
       }
@@ -121,17 +121,15 @@ export function DocumentList() {
         window.open(json.spreadsheetUrl, '_blank', 'noopener,noreferrer')
       }
 
-      // Prompt to archive exported docs
+      // Auto-archive after export (and keep undo info)
       if (json?.batchId && (json?.exportedCount ?? 0) > 0) {
-        const ok = confirm(`Exported ${json.exportedCount} document(s). Archive them now?`)
-        if (ok) {
-          await fetch('/api/documents/archive-batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ batchId: json.batchId }),
-          })
-          fetchDocuments()
-        }
+        await fetch('/api/documents/archive-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ batchId: json.batchId }),
+        })
+        setLastExport({ batchId: json.batchId, exportedCount: json.exportedCount, spreadsheetUrl: json.spreadsheetUrl })
+        fetchDocuments()
       }
     } catch (e) {
       console.error('Sheets export error:', e)
@@ -293,6 +291,54 @@ export function DocumentList() {
 
   return (
     <div className="space-y-4">
+      {lastExport ? (
+        <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="text-sm text-gray-800">
+            Exported {lastExport.exportedCount} document(s) and archived them.
+            {lastExport.spreadsheetUrl ? (
+              <span className="ml-2">
+                <a
+                  className="text-blue-600 hover:underline"
+                  href={lastExport.spreadsheetUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open sheet
+                </a>
+              </span>
+            ) : null}
+            <span className="ml-2 text-gray-500">Undo will restore documents to Active (the sheet remains).</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  setUndoing(true)
+                  await fetch('/api/documents/unarchive-batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ batchId: lastExport.batchId }),
+                  })
+                  setLastExport(null)
+                  fetchDocuments()
+                } finally {
+                  setUndoing(false)
+                }
+              }}
+              disabled={undoing}
+              className="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              {undoing ? 'Undoing…' : 'Undo'}
+            </button>
+            <button
+              onClick={() => setLastExport(null)}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
