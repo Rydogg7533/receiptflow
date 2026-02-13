@@ -27,7 +27,7 @@ export function DocumentList() {
   const [undoing, setUndoing] = useState(false)
   const { user } = useSupabase()
 
-  type View = 'to_export' | 'exported' | 'archived' | 'trash'
+  type View = 'to_export' | 'archived' | 'trash'
   const [view, setView] = useState<View>('to_export')
 
   const fetchDocuments = async () => {
@@ -231,14 +231,7 @@ export function DocumentList() {
             >
               To Export
             </button>
-            <button
-              onClick={() => setView('exported')}
-              className={`px-3 py-2 text-sm font-medium rounded-md border ${
-                view === 'exported' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
-              }`}
-            >
-              Exported
-            </button>
+            {/* Exported view removed for simpler 3-tab workflow */}
             <button
               onClick={() => setView('archived')}
               className={`px-3 py-2 text-sm font-medium rounded-md border ${
@@ -301,7 +294,7 @@ export function DocumentList() {
         <div className="text-center py-12">
           <FileText className="mx-auto h-12 w-12 text-gray-300" />
           <p className="mt-4 text-gray-500">No documents in this view</p>
-          <p className="text-sm text-gray-400">Try switching Active / Archived</p>
+          <p className="text-sm text-gray-400">Try switching To Export / Archived / Trash</p>
         </div>
       </div>
     )
@@ -325,14 +318,14 @@ export function DocumentList() {
                 </a>
               </span>
             ) : null}
-            <span className="ml-2 text-gray-500">Undo will restore documents to Active (the sheet remains).</span>
+            <span className="ml-2 text-gray-500">Re-opening does not delete the exported sheet. Delete it in Google Sheets if you don’t want duplicates.</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={async () => {
                 try {
                   setUndoing(true)
-                  await fetch('/api/documents/unarchive-batch', {
+                  await fetch('/api/documents/reopen-batch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ batchId: lastExport.batchId }),
@@ -346,7 +339,7 @@ export function DocumentList() {
               disabled={undoing}
               className="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
             >
-              {undoing ? 'Undoing…' : 'Undo'}
+              {undoing ? 'Re-opening…' : 'Re-open for export'}
             </button>
             <button
               onClick={() => setLastExport(null)}
@@ -365,7 +358,7 @@ export function DocumentList() {
               view === 'to_export' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
             }`}
           >
-            Active
+            To Export
           </button>
           <button
             onClick={() => setView('archived')}
@@ -537,10 +530,10 @@ export function DocumentList() {
                       <button
                         onClick={() => toggleArchive(doc, false)}
                         className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                        title="Restore to Active"
+                        title="Unarchive"
                       >
                         <Archive className="h-4 w-4 mr-2" />
-                        Restore to Active
+                        Unarchive
                       </button>
                     ) : view === 'to_export' ? (
                       <button

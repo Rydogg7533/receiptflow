@@ -49,12 +49,8 @@ export async function GET(request: NextRequest) {
         // to_export / exported default to non-archived
         q = q.is('archived_at', null)
 
-        if (view === 'exported') {
-          q = q.not('exported_at', 'is', null)
-        } else {
-          // to_export
-          q = q.is('exported_at', null)
-        }
+        // default: to_export
+        q = q.is('exported_at', null)
       }
     }
 
