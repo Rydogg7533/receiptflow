@@ -39,6 +39,28 @@ create index idx_documents_status on documents(status);
 create index idx_documents_created_at on documents(created_at desc);
 ```
 
+### google_connections
+Stores per-user Google OAuth tokens for Sheets export.
+
+```sql
+create table google_connections (
+  user_id uuid references auth.users(id) on delete cascade primary key,
+  access_token text not null,
+  refresh_token text,
+  expires_at timestamp with time zone,
+  scope text,
+  token_type text,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table google_connections enable row level security;
+
+create policy "Users can manage their google connection"
+  on google_connections for all
+  using (auth.uid() = user_id);
+```
+
 ### profiles
 Stores user subscription and billing information.
 
