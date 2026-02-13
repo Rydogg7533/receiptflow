@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSupabase } from './SupabaseProvider'
-import { Download, Loader2, FileText, Trash2, Sheet, Archive } from 'lucide-react'
+import { Download, Loader2, FileText, Trash2, Sheet, Archive, Trash } from 'lucide-react'
 
 interface Document {
   id: string
@@ -25,11 +25,12 @@ export function DocumentList() {
   const [exportingSheets, setExportingSheets] = useState(false)
   const { user } = useSupabase()
 
-  const [showArchived, setShowArchived] = useState(false)
+  type View = 'active' | 'archived' | 'trash'
+  const [view, setView] = useState<View>('active')
 
   const fetchDocuments = async () => {
     try {
-      const response = await fetch(`/api/documents?archived=${showArchived ? '1' : '0'}`)
+      const response = await fetch(`/api/documents?view=${view}`)
       if (response.ok) {
         const data = await response.json()
         setDocuments(data.documents)
@@ -59,7 +60,7 @@ export function DocumentList() {
     // Poll every 5 seconds
     const interval = setInterval(fetchDocuments, 5000)
     return () => clearInterval(interval)
-  }, [showArchived])
+  }, [view])
 
   const exportToCSV = async () => {
     try {
@@ -132,14 +133,43 @@ export function DocumentList() {
     }
   }
 
-  const deleteDocument = async (id: string) => {
+  const moveToTrash = async (doc: Document) => {
     try {
-      const response = await fetch(`/api/documents/${id}`, { method: 'DELETE' })
-      if (response.ok) {
-        setDocuments(prev => prev.filter(d => d.id !== id))
-      }
+      await fetch('/api/documents/trash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: doc.id }),
+      })
+      fetchDocuments()
     } catch (error) {
-      console.error('Error deleting document:', error)
+      console.error('Error trashing document:', error)
+    }
+  }
+
+  const restoreFromTrash = async (doc: Document) => {
+    try {
+      await fetch('/api/documents/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: doc.id }),
+      })
+      fetchDocuments()
+    } catch (error) {
+      console.error('Error restoring document:', error)
+    }
+  }
+
+  const deleteForever = async (doc: Document) => {
+    try {
+      if (!confirm('Delete forever? This cannot be undone.')) return
+      await fetch('/api/documents/hard-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: doc.id }),
+      })
+      fetchDocuments()
+    } catch (error) {
+      console.error('Error hard deleting document:', error)
     }
   }
 
@@ -160,20 +190,28 @@ export function DocumentList() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowArchived(false)}
+              onClick={() => setView('active')}
               className={`px-3 py-2 text-sm font-medium rounded-md border ${
-                !showArchived ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+                view === 'active' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
               }`}
             >
               Active
             </button>
             <button
-              onClick={() => setShowArchived(true)}
+              onClick={() => setView('archived')}
               className={`px-3 py-2 text-sm font-medium rounded-md border ${
-                showArchived ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+                view === 'archived' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
               }`}
             >
               Archived
+            </button>
+            <button
+              onClick={() => setView('trash')}
+              className={`px-3 py-2 text-sm font-medium rounded-md border ${
+                view === 'trash' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+              }`}
+            >
+              Trash
             </button>
           </div>
 
@@ -232,20 +270,28 @@ export function DocumentList() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowArchived(false)}
+            onClick={() => setView('active')}
             className={`px-3 py-2 text-sm font-medium rounded-md border ${
-              !showArchived ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+              view === 'active' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
             }`}
           >
             Active
           </button>
           <button
-            onClick={() => setShowArchived(true)}
+            onClick={() => setView('archived')}
             className={`px-3 py-2 text-sm font-medium rounded-md border ${
-              showArchived ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+              view === 'archived' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
             }`}
           >
             Archived
+          </button>
+          <button
+            onClick={() => setView('trash')}
+            className={`px-3 py-2 text-sm font-medium rounded-md border ${
+              view === 'trash' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+            }`}
+          >
+            Trash
           </button>
         </div>
 
@@ -397,7 +443,7 @@ export function DocumentList() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-3">
-                    {showArchived ? (
+                    {view === 'archived' ? (
                       <button
                         onClick={() => toggleArchive(doc, false)}
                         className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
@@ -406,7 +452,7 @@ export function DocumentList() {
                         <Archive className="h-4 w-4 mr-2" />
                         Restore to Active
                       </button>
-                    ) : (
+                    ) : view === 'active' ? (
                       <button
                         onClick={() => toggleArchive(doc, true)}
                         className="text-gray-700 hover:text-gray-900"
@@ -414,15 +460,34 @@ export function DocumentList() {
                       >
                         <Archive className="h-4 w-4" />
                       </button>
-                    )}
+                    ) : null}
 
-                    <button
-                      onClick={() => deleteDocument(doc.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {view === 'trash' ? (
+                      <>
+                        <button
+                          onClick={() => restoreFromTrash(doc)}
+                          className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                          title="Restore"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          onClick={() => deleteForever(doc)}
+                          className="flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                          title="Delete forever"
+                        >
+                          Delete forever
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => moveToTrash(doc)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Move to Trash"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

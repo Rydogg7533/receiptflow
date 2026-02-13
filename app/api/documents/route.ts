@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url)
-    const archived = url.searchParams.get('archived') === '1'
+    const view = url.searchParams.get('view') || 'active'
 
     let q = supabase
       .from('documents')
@@ -37,7 +37,13 @@ export async function GET(request: NextRequest) {
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
 
-    q = archived ? q.not('archived_at', 'is', null) : q.is('archived_at', null)
+    if (view === 'trash') {
+      q = q.not('trashed_at', 'is', null)
+    } else {
+      // active/archived exclude trash
+      q = q.is('trashed_at', null)
+      q = view === 'archived' ? q.not('archived_at', 'is', null) : q.is('archived_at', null)
+    }
 
     const { data: documents, error } = await q
 
