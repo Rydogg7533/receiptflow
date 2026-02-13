@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useSupabase } from './SupabaseProvider'
 import { Download, Loader2, FileText, Trash2 } from 'lucide-react'
-import Papa from 'papaparse'
 
 interface Document {
   id: string
@@ -40,28 +39,40 @@ export function DocumentList() {
     return () => clearInterval(interval)
   }, [])
 
-  const exportToCSV = () => {
-    const completedDocs = documents.filter(d => d.status === 'completed' && d.extracted_data)
-    if (completedDocs.length === 0) return
+  const exportToCSV = async () => {
+    try {
+      const resp = await fetch('/api/export/csv')
+      if (!resp.ok) throw new Error('Export failed')
 
-    const rows = completedDocs.map(doc => ({
-      filename: doc.filename,
-      date: doc.extracted_data.date || '',
-      vendor: doc.extracted_data.vendor || '',
-      total: doc.extracted_data.total || '',
-      subtotal: doc.extracted_data.subtotal || '',
-      tax: doc.extracted_data.tax || '',
-      ...doc.extracted_data,
-    }))
+      const contentType = resp.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        const payload = await resp.json()
+        for (const key of ['documents', 'line_items']) {
+          const file = payload[key]
+          if (!file?.csv) continue
+          const blob = new Blob([file.csv], { type: 'text/csv' })
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = file.filename || `${key}.csv`
+          a.click()
+          window.URL.revokeObjectURL(url)
+        }
+        return
+      }
 
-    const csv = Papa.unparse(rows)
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `receipts-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
+      // Fallback: single CSV file
+      const csv = await resp.text()
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `documents-${new Date().toISOString().split('T')[0]}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error exporting CSV:', error)
+    }
   }
 
   const deleteDocument = async (id: string) => {
