@@ -691,7 +691,7 @@ export function DocumentList() {
                         body: JSON.stringify({ documentId: doc.id, patch: { document_type: v } }),
                       })
                     }}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white text-gray-900"
                     disabled={doc.status !== 'completed'}
                   >
                     <option value="receipt">receipt</option>
@@ -713,7 +713,7 @@ export function DocumentList() {
                         body: JSON.stringify({ documentId: doc.id, patch: { payment_status: v } }),
                       })
                     }}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white text-gray-900"
                     disabled={doc.status !== 'completed'}
                   >
                     <option value="paid">paid</option>
