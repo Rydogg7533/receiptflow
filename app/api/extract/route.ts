@@ -3,9 +3,16 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Lazy-load OpenAI client to avoid build-time errors
+let openai: OpenAI | null = null
+function getOpenAI() {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  }
+  return openai
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,7 +82,7 @@ export async function POST(request: NextRequest) {
     const dataUrl = `data:${mimeType};base64,${base64}`
 
     // Extract data using OpenAI
-    const extraction = await openai.chat.completions.create({
+    const extraction = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
