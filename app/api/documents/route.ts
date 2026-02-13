@@ -28,11 +28,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: documents, error } = await supabase
+    const url = new URL(request.url)
+    const archived = url.searchParams.get('archived') === '1'
+
+    let q = supabase
       .from('documents')
       .select('*')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
+
+    q = archived ? q.not('archived_at', 'is', null) : q.is('archived_at', null)
+
+    const { data: documents, error } = await q
 
     if (error) {
       console.error('Database error:', error)

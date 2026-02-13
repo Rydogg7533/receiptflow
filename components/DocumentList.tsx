@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSupabase } from './SupabaseProvider'
-import { Download, Loader2, FileText, Trash2, Sheet } from 'lucide-react'
+import { Download, Loader2, FileText, Trash2, Sheet, Archive } from 'lucide-react'
 
 interface Document {
   id: string
@@ -25,9 +25,11 @@ export function DocumentList() {
   const [exportingSheets, setExportingSheets] = useState(false)
   const { user } = useSupabase()
 
+  const [showArchived, setShowArchived] = useState(false)
+
   const fetchDocuments = async () => {
     try {
-      const response = await fetch('/api/documents')
+      const response = await fetch(`/api/documents?archived=${showArchived ? '1' : '0'}`)
       if (response.ok) {
         const data = await response.json()
         setDocuments(data.documents)
@@ -57,7 +59,7 @@ export function DocumentList() {
     // Poll every 5 seconds
     const interval = setInterval(fetchDocuments, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [showArchived])
 
   const exportToCSV = async () => {
     try {
@@ -116,6 +118,20 @@ export function DocumentList() {
     window.location.href = '/api/auth/google/start'
   }
 
+  const toggleArchive = async (doc: Document, archived: boolean) => {
+    try {
+      await fetch('/api/documents/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: doc.id, archived }),
+      })
+      // Refresh list
+      fetchDocuments()
+    } catch (e) {
+      console.error('archive failed', e)
+    }
+  }
+
   const deleteDocument = async (id: string) => {
     try {
       const response = await fetch(`/api/documents/${id}`, { method: 'DELETE' })
@@ -149,8 +165,28 @@ export function DocumentList() {
 
   return (
     <div className="space-y-4">
-      {completedCount > 0 && (
-        <div className="flex justify-end gap-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowArchived(false)}
+            className={`px-3 py-2 text-sm font-medium rounded-md border ${
+              !showArchived ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+            }`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => setShowArchived(true)}
+            className={`px-3 py-2 text-sm font-medium rounded-md border ${
+              showArchived ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+            }`}
+          >
+            Archived
+          </button>
+        </div>
+
+        {completedCount > 0 && (
+          <div className="flex justify-end gap-2">
           <button
             onClick={exportToCSV}
             className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
@@ -186,8 +222,9 @@ export function DocumentList() {
               Connect Google
             </button>
           )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -295,12 +332,23 @@ export function DocumentList() {
                   {doc.extracted_data?.total ? `$${doc.extracted_data.total}` : '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => deleteDocument(doc.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => toggleArchive(doc, !showArchived)}
+                      className="text-gray-700 hover:text-gray-900"
+                      title={showArchived ? 'Unarchive' : 'Archive'}
+                    >
+                      <Archive className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      onClick={() => deleteDocument(doc.id)}
+                      className="text-red-600 hover:text-red-900"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

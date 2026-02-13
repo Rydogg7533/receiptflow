@@ -93,13 +93,31 @@ export async function GET(req: NextRequest) {
 
     const { data: documents, error } = await supabase
       .from('documents')
-      .select('id, filename, file_type, status, extracted_data, created_at, document_type, payment_status, due_date, balance_due, needs_review, confidence_overall')
+      .select('id, filename, file_type, status, extracted_data, created_at, document_type, payment_status, due_date, balance_due, needs_review, confidence_overall, exported_at, archived_at')
       .eq('user_id', session.user.id)
+      .is('archived_at', null)
+      .is('exported_at', null)
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: 'Database error' }, { status: 500 })
 
     const docs = (documents || []).filter((d: any) => d.status === 'completed')
+
+    // Create export batch
+    const { data: batch, error: batchErr } = await supabase
+      .from('export_batches')
+      .insert({
+        user_id: session.user.id,
+        destination: 'csv',
+        doc_count: docs.length,
+      })
+      .select('*')
+      .single()
+
+    if (batchErr) {
+      console.error('batch create error', batchErr)
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
 
     const docColumns = [
       'document_id',
@@ -125,6 +143,15 @@ export async function GET(req: NextRequest) {
     ]
 
     const documentsCsv = toCsv(docs.map(flattenDocumentRow), docColumns)
+
+    // Mark exported (best-effort)
+    if (docs.length > 0) {
+      const now = new Date().toISOString()
+      await supabase
+        .from('documents')
+        .update({ exported_at: now, export_batch_id: batch.id, updated_at: now })
+        .in('id', docs.map((d: any) => d.id))
+    }
 
     if (!includeLineItems) {
       return new NextResponse(documentsCsv, {

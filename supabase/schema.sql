@@ -39,6 +39,37 @@ create index idx_documents_status on documents(status);
 create index idx_documents_created_at on documents(created_at desc);
 ```
 
+### export_batches
+Tracks exports ("sessions") so documents don't bleed between runs.
+
+```sql
+create table export_batches (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  destination text not null check (destination in ('csv', 'sheets')),
+  spreadsheet_id text,
+  spreadsheet_url text,
+  doc_count integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table export_batches enable row level security;
+
+create policy "Users can manage their export batches"
+  on export_batches for all
+  using (auth.uid() = user_id);
+
+-- Add columns to documents
+alter table documents
+  add column if not exists exported_at timestamp with time zone,
+  add column if not exists export_batch_id uuid references export_batches(id),
+  add column if not exists archived_at timestamp with time zone;
+
+create index if not exists idx_documents_exported_at on documents(exported_at);
+create index if not exists idx_documents_archived_at on documents(archived_at);
+create index if not exists idx_documents_export_batch_id on documents(export_batch_id);
+```
+
 ### google_connections
 Stores per-user Google OAuth tokens for Sheets export.
 

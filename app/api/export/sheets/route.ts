@@ -100,15 +100,33 @@ export async function POST() {
 
     const { data: documents, error: docErr } = await supabase
       .from('documents')
-      .select('id, filename, file_type, status, extracted_data, created_at, document_type, payment_status, due_date, balance_due, needs_review, confidence_overall')
+      .select('id, filename, file_type, status, extracted_data, created_at, document_type, payment_status, due_date, balance_due, needs_review, confidence_overall, exported_at, archived_at')
       .eq('user_id', session.user.id)
+      .is('archived_at', null)
+      .is('exported_at', null)
       .order('created_at', { ascending: false })
 
     if (docErr) return NextResponse.json({ error: 'Database error' }, { status: 500 })
 
     const docs = (documents || []).filter((d: any) => d.status === 'completed')
 
-    const sheet = await createSpreadsheet(accessToken, `ReceiptFlow Export ${new Date().toISOString().slice(0, 10)}`)
+    // Create export batch
+    const { data: batch, error: batchErr } = await supabase
+      .from('export_batches')
+      .insert({
+        user_id: session.user.id,
+        destination: 'sheets',
+        doc_count: docs.length,
+      })
+      .select('*')
+      .single()
+
+    if (batchErr) {
+      console.error('batch create error', batchErr)
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
+
+    const sheet = await createSpreadsheet(accessToken, `ReceiptFlow Export ${new Date().toISOString().slice(0, 10)} (Batch ${String(batch.id).slice(0, 8)})`)
 
     const docColumns = [
       'document_id',
@@ -145,7 +163,23 @@ export async function POST() {
       { range: 'Line Items!A1', values: lineValues },
     ])
 
-    return NextResponse.json({ success: true, spreadsheetUrl: sheet.spreadsheetUrl })
+    // Update batch with sheet info
+    await supabase
+      .from('export_batches')
+      .update({ spreadsheet_id: sheet.spreadsheetId, spreadsheet_url: sheet.spreadsheetUrl })
+      .eq('id', batch.id)
+      .eq('user_id', session.user.id)
+
+    // Mark exported (best-effort)
+    if (docs.length > 0) {
+      const now = new Date().toISOString()
+      await supabase
+        .from('documents')
+        .update({ exported_at: now, export_batch_id: batch.id, updated_at: now })
+        .in('id', docs.map((d: any) => d.id))
+    }
+
+    return NextResponse.json({ success: true, spreadsheetUrl: sheet.spreadsheetUrl, batchId: batch.id })
   } catch (e: any) {
     console.error('Sheets export error:', e)
     return NextResponse.json({ error: 'Export failed', details: e?.message || String(e) }, { status: 500 })
