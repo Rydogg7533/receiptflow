@@ -113,15 +113,15 @@ export function UploadZone() {
 
   return (
     <div className="space-y-4">
-      <div
+      <label
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors block ${
           isDragActive
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-300 hover:border-gray-400'
         }`}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} className="hidden" />
         <Upload className="mx-auto h-12 w-12 text-gray-400" />
         <p className="mt-2 text-sm font-medium text-gray-900">
           {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
@@ -132,7 +132,7 @@ export function UploadZone() {
         <p className="mt-1 text-xs text-gray-400">
           PDF, PNG, JPG up to 10MB
         </p>
-      </div>
+      </label>
 
       {/* Uploading files list */}
       {uploadingFiles.length > 0 && (
