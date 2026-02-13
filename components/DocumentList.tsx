@@ -16,6 +16,8 @@ interface Document {
   due_date?: string | null
   balance_due?: number | string | null
   needs_review?: boolean | null
+  exported_at?: string | null
+  export_batch_id?: string | null
 }
 
 export function DocumentList() {
@@ -532,14 +534,39 @@ export function DocumentList() {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-3">
                     {view === 'archived' ? (
-                      <button
-                        onClick={() => toggleArchive(doc, false)}
-                        className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                        title="Unarchive"
-                      >
-                        <Archive className="h-4 w-4 mr-2" />
-                        Unarchive
-                      </button>
+                      doc.exported_at ? (
+                        <button
+                          onClick={async () => {
+                            const batchId = doc.export_batch_id
+                            if (!batchId) {
+                              alert('This document was exported, but has no batch id. Cannot re-open for export.')
+                              return
+                            }
+                            const res = await fetch('/api/documents/reopen-batch', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ batchId }),
+                            })
+                            const json = await res.json().catch(() => null)
+                            if (!res.ok) throw new Error(json?.error || 'Failed to re-open batch')
+                            if (json?.message) alert(json.message)
+                            fetchDocuments()
+                          }}
+                          className="flex items-center px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                          title="Re-open for export"
+                        >
+                          Re-open for export
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => toggleArchive(doc, false)}
+                          className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                          title="Unarchive"
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Unarchive
+                        </button>
+                      )
                     ) : view === 'to_export' ? (
                       <button
                         onClick={() => toggleArchive(doc, true)}
