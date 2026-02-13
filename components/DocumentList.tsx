@@ -155,6 +155,25 @@ export function DocumentList() {
     window.location.href = '/api/auth/google/start'
   }
 
+  const retryExtract = async (doc: Document) => {
+    try {
+      // Optimistic UI
+      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, status: 'processing' } : d)))
+      const res = await fetch('/api/documents/retry-extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: doc.id }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || json?.details || 'Retry failed')
+      fetchDocuments()
+    } catch (e) {
+      console.error('retry extract failed', e)
+      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, status: 'error' } : d)))
+      alert(e instanceof Error ? e.message : 'Retry failed')
+    }
+  }
+
   const toggleArchive = async (doc: Document, archived: boolean) => {
     try {
       await fetch('/api/documents/archive', {
@@ -574,6 +593,16 @@ export function DocumentList() {
                         title="Archive"
                       >
                         <Archive className="h-4 w-4" />
+                      </button>
+                    ) : null}
+
+                    {view !== 'trash' && doc.status === 'error' ? (
+                      <button
+                        onClick={() => retryExtract(doc)}
+                        className="flex items-center px-3 py-1.5 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
+                        title="Retry extraction"
+                      >
+                        Retry
                       </button>
                     ) : null}
 
