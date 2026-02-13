@@ -110,6 +110,10 @@ export async function POST() {
 
     const docs = (documents || []).filter((d: any) => d.status === 'completed')
 
+    if (docs.length === 0) {
+      return NextResponse.json({ success: true, exportedCount: 0, message: 'No unexported documents to export.' })
+    }
+
     // Create export batch
     const { data: batch, error: batchErr } = await supabase
       .from('export_batches')

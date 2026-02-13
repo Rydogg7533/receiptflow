@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url)
-    const view = url.searchParams.get('view') || 'active'
+    const view = (url.searchParams.get('view') || 'to_export') as string
 
     let q = supabase
       .from('documents')
@@ -40,9 +40,22 @@ export async function GET(request: NextRequest) {
     if (view === 'trash') {
       q = q.not('trashed_at', 'is', null)
     } else {
-      // active/archived exclude trash
+      // non-trash views exclude trash
       q = q.is('trashed_at', null)
-      q = view === 'archived' ? q.not('archived_at', 'is', null) : q.is('archived_at', null)
+
+      if (view === 'archived') {
+        q = q.not('archived_at', 'is', null)
+      } else {
+        // to_export / exported default to non-archived
+        q = q.is('archived_at', null)
+
+        if (view === 'exported') {
+          q = q.not('exported_at', 'is', null)
+        } else {
+          // to_export
+          q = q.is('exported_at', null)
+        }
+      }
     }
 
     const { data: documents, error } = await q

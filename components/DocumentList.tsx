@@ -27,8 +27,8 @@ export function DocumentList() {
   const [undoing, setUndoing] = useState(false)
   const { user } = useSupabase()
 
-  type View = 'active' | 'archived' | 'trash'
-  const [view, setView] = useState<View>('active')
+  type View = 'to_export' | 'exported' | 'archived' | 'trash'
+  const [view, setView] = useState<View>('to_export')
 
   const fetchDocuments = async () => {
     try {
@@ -84,6 +84,11 @@ export function DocumentList() {
           window.URL.revokeObjectURL(url)
         }
 
+        if ((payload?.exportedCount ?? 0) === 0) {
+          alert(payload?.message || 'No documents to export.')
+          return
+        }
+
         // Auto-archive after export (and keep undo info)
         if (payload?.batchId && (payload?.exportedCount ?? 0) > 0) {
           await fetch('/api/documents/archive-batch', {
@@ -119,6 +124,11 @@ export function DocumentList() {
       if (!resp.ok) throw new Error(json?.details || json?.error || 'Sheets export failed')
       if (json?.spreadsheetUrl) {
         window.open(json.spreadsheetUrl, '_blank', 'noopener,noreferrer')
+      }
+
+      if ((json?.exportedCount ?? 0) === 0) {
+        alert(json?.message || 'No documents to export.')
+        return
       }
 
       // Auto-archive after export (and keep undo info)
@@ -214,12 +224,20 @@ export function DocumentList() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setView('active')}
+              onClick={() => setView('to_export')}
               className={`px-3 py-2 text-sm font-medium rounded-md border ${
-                view === 'active' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+                view === 'to_export' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
               }`}
             >
-              Active
+              To Export
+            </button>
+            <button
+              onClick={() => setView('exported')}
+              className={`px-3 py-2 text-sm font-medium rounded-md border ${
+                view === 'exported' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+              }`}
+            >
+              Exported
             </button>
             <button
               onClick={() => setView('archived')}
@@ -342,9 +360,9 @@ export function DocumentList() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setView('active')}
+            onClick={() => setView('to_export')}
             className={`px-3 py-2 text-sm font-medium rounded-md border ${
-              view === 'active' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+              view === 'to_export' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
             }`}
           >
             Active
@@ -524,7 +542,7 @@ export function DocumentList() {
                         <Archive className="h-4 w-4 mr-2" />
                         Restore to Active
                       </button>
-                    ) : view === 'active' ? (
+                    ) : view === 'to_export' ? (
                       <button
                         onClick={() => toggleArchive(doc, true)}
                         className="text-gray-700 hover:text-gray-900"
