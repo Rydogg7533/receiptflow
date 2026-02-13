@@ -20,6 +20,9 @@ export function UploadZone() {
     const files = e.target.files
     if (!files || files.length === 0) return
 
+    // Allow selecting the same file again later
+    e.target.value = ''
+
     const newFiles = Array.from(files).map(file => ({
       id: Math.random().toString(36).substring(7),
       file,
@@ -29,10 +32,13 @@ export function UploadZone() {
 
     setUploadingFiles(prev => [...prev, ...newFiles])
 
-    // Upload each file
-    newFiles.forEach(file => {
-      uploadFile(file)
-    })
+    // Upload + extract sequentially (simple client-side queue for beta)
+    ;(async () => {
+      for (const f of newFiles) {
+        // eslint-disable-next-line no-await-in-loop
+        await uploadFile(f)
+      }
+    })()
   }
 
   const uploadFile = async (uploadingFile: UploadingFile) => {
@@ -59,8 +65,11 @@ export function UploadZone() {
         prev.map(f => f.id === uploadingFile.id ? { ...f, status: 'processing', progress: 100 } : f)
       )
 
-      // Start extraction
+      // Start extraction (sequential)
       await extractData(data.documentId, uploadingFile.id)
+
+      // Refresh document list if the component exists on page
+      window.dispatchEvent(new Event('documents:refresh'))
 
     } catch (error) {
       console.error('Upload error:', error)
@@ -114,6 +123,7 @@ export function UploadZone() {
           ref={fileInputRef}
           type="file"
           accept="image/*,.pdf"
+          multiple
           onChange={handleFileSelect}
           className="hidden"
         />

@@ -61,9 +61,16 @@ export function DocumentList() {
   useEffect(() => {
     fetchDocuments()
     fetchGoogleStatus()
+
+    const onRefresh = () => fetchDocuments()
+    window.addEventListener('documents:refresh', onRefresh)
+
     // Poll every 5 seconds
     const interval = setInterval(fetchDocuments, 5000)
-    return () => clearInterval(interval)
+    return () => {
+      window.removeEventListener('documents:refresh', onRefresh)
+      clearInterval(interval)
+    }
   }, [view])
 
   const exportToCSV = async () => {
