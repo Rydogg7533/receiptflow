@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSupabase } from './SupabaseProvider'
-import { Download, Loader2, FileText, Trash2 } from 'lucide-react'
+import { Download, Loader2, FileText, Trash2, Sheet } from 'lucide-react'
 
 interface Document {
   id: string
@@ -16,6 +16,8 @@ interface Document {
 export function DocumentList() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
+  const [googleConnected, setGoogleConnected] = useState(false)
+  const [exportingSheets, setExportingSheets] = useState(false)
   const { user } = useSupabase()
 
   const fetchDocuments = async () => {
@@ -32,8 +34,21 @@ export function DocumentList() {
     }
   }
 
+  const fetchGoogleStatus = async () => {
+    try {
+      const r = await fetch('/api/google/status')
+      if (r.ok) {
+        const s = await r.json()
+        setGoogleConnected(!!s.connected)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   useEffect(() => {
     fetchDocuments()
+    fetchGoogleStatus()
     // Poll every 5 seconds
     const interval = setInterval(fetchDocuments, 5000)
     return () => clearInterval(interval)
@@ -75,6 +90,27 @@ export function DocumentList() {
     }
   }
 
+  const exportToGoogleSheets = async () => {
+    try {
+      setExportingSheets(true)
+      const resp = await fetch('/api/export/sheets', { method: 'POST' })
+      const json = await resp.json().catch(() => ({}))
+      if (!resp.ok) throw new Error(json?.details || json?.error || 'Sheets export failed')
+      if (json?.spreadsheetUrl) {
+        window.open(json.spreadsheetUrl, '_blank', 'noopener,noreferrer')
+      }
+    } catch (e) {
+      console.error('Sheets export error:', e)
+      alert(e instanceof Error ? e.message : 'Sheets export failed')
+    } finally {
+      setExportingSheets(false)
+    }
+  }
+
+  const connectGoogle = () => {
+    window.location.href = '/api/auth/google/start'
+  }
+
   const deleteDocument = async (id: string) => {
     try {
       const response = await fetch(`/api/documents/${id}`, { method: 'DELETE' })
@@ -109,14 +145,42 @@ export function DocumentList() {
   return (
     <div className="space-y-4">
       {completedCount > 0 && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <button
             onClick={exportToCSV}
             className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
           >
             <Download className="h-4 w-4 mr-2" />
-            Export to CSV
+            Download CSV
           </button>
+
+          {googleConnected ? (
+            <button
+              onClick={exportToGoogleSheets}
+              disabled={exportingSheets}
+              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {exportingSheets ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Exporting…
+                </>
+              ) : (
+                <>
+                  <Sheet className="h-4 w-4 mr-2" />
+                  Export to Google Sheets
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={connectGoogle}
+              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-black"
+            >
+              <Sheet className="h-4 w-4 mr-2" />
+              Connect Google
+            </button>
+          )}
         </div>
       )}
 
