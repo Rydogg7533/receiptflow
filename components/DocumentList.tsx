@@ -11,6 +11,11 @@ interface Document {
   status: 'pending' | 'processing' | 'completed' | 'error'
   extracted_data: any
   created_at: string
+  document_type?: string | null
+  payment_status?: string | null
+  due_date?: string | null
+  balance_due?: number | string | null
+  needs_review?: boolean | null
 }
 
 export function DocumentList() {
@@ -198,6 +203,12 @@ export function DocumentList() {
                 Vendor
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Type
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -217,18 +228,69 @@ export function DocumentList() {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    doc.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    doc.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                    doc.status === 'error' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {doc.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      doc.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      doc.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                      doc.status === 'error' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {doc.status}
+                    </span>
+                    {doc.needs_review ? (
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                        needs review
+                      </span>
+                    ) : null}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {doc.extracted_data?.vendor || '-'}
                 </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <select
+                    value={(doc.document_type || doc.extracted_data?.document_type || 'other').toString()}
+                    onChange={async (e) => {
+                      const v = e.target.value
+                      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, document_type: v } : d)))
+                      await fetch('/api/documents/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ documentId: doc.id, patch: { document_type: v } }),
+                      })
+                    }}
+                    className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    disabled={doc.status !== 'completed'}
+                  >
+                    <option value="receipt">receipt</option>
+                    <option value="invoice">invoice</option>
+                    <option value="statement">statement</option>
+                    <option value="other">other</option>
+                  </select>
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <select
+                    value={(doc.payment_status || doc.extracted_data?.payment_status || 'unknown').toString()}
+                    onChange={async (e) => {
+                      const v = e.target.value
+                      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, payment_status: v } : d)))
+                      await fetch('/api/documents/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ documentId: doc.id, patch: { payment_status: v } }),
+                      })
+                    }}
+                    className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    disabled={doc.status !== 'completed'}
+                  >
+                    <option value="paid">paid</option>
+                    <option value="unpaid">unpaid</option>
+                    <option value="unknown">unknown</option>
+                  </select>
+                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {doc.extracted_data?.total ? `$${doc.extracted_data.total}` : '-'}
                 </td>

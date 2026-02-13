@@ -107,9 +107,11 @@ Extract the following information and return it as JSON:
 {
   "vendor": "store/merchant name",
   "date": "YYYY-MM-DD",
+  "currency": "3-letter code if known (e.g. USD) otherwise null",
   "total": "total amount (number only, no $)",
   "subtotal": "subtotal before tax (number only)",
   "tax": "tax amount (number only)",
+  "tip": "tip amount (number only) if present",
   "line_items": [
     {
       "description": "item description",
@@ -119,7 +121,13 @@ Extract the following information and return it as JSON:
     }
   ],
   "payment_method": "payment method if visible",
-  "receipt_number": "receipt/invoice number if visible"
+  "receipt_number": "receipt/invoice number if visible",
+
+  "document_type": "one of: receipt | invoice | statement | other",
+  "payment_status": "one of: paid | unpaid | unknown",
+  "due_date": "YYYY-MM-DD if invoice due date is shown, otherwise null",
+  "balance_due": "number only (no $) if amount due/balance due is shown, otherwise null",
+  "confidence_overall": "number from 0 to 1 indicating confidence in extracted totals/type"
 }
 
 Return ONLY valid JSON, no markdown formatting. If a field is not found, use null or empty array.`
@@ -145,12 +153,35 @@ Return ONLY valid JSON, no markdown formatting. If a field is not found, use nul
 
     const extractedData = JSON.parse(extraction.choices[0].message.content || '{}')
 
-    // Update document with extracted data
+    // Lightweight validation to set needs_review
+    const subtotal = Number(extractedData?.subtotal)
+    const tax = Number(extractedData?.tax)
+    const tip = extractedData?.tip !== null && extractedData?.tip !== undefined ? Number(extractedData?.tip) : 0
+    const total = Number(extractedData?.total)
+    const hasTotals = Number.isFinite(total)
+    const reconcile = Number.isFinite(subtotal) && Number.isFinite(tax) && Number.isFinite(tip) && hasTotals
+      ? Math.abs((subtotal + tax + tip) - total) <= 0.05
+      : true
+
+    const docType = (extractedData?.document_type || '').toString().toLowerCase()
+    const dueDate = extractedData?.due_date
+    const balanceDue = extractedData?.balance_due
+    const invoiceMissingFields = docType === 'invoice' && (!dueDate || balanceDue === null || balanceDue === undefined || balanceDue === '')
+
+    const needs_review = !reconcile || !extractedData?.vendor || !extractedData?.date || !hasTotals || invoiceMissingFields
+
+    // Update document with extracted data + classification columns (server side)
     const { error: updateError } = await supabase
       .from('documents')
       .update({
         status: 'completed',
         extracted_data: extractedData,
+        document_type: extractedData?.document_type ?? null,
+        payment_status: extractedData?.payment_status ?? null,
+        due_date: extractedData?.due_date ?? null,
+        balance_due: extractedData?.balance_due ?? null,
+        needs_review,
+        confidence_overall: extractedData?.confidence_overall ?? null,
         conversion_provider,
         pages_converted,
         converted_at,
