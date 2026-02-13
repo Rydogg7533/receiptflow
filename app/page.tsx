@@ -1,47 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useSupabase } from '@/components/SupabaseProvider'
-import { AuthForm } from '@/components/AuthForm'
-import { UploadZone } from '@/components/UploadZone'
-import { DocumentList } from '@/components/DocumentList'
-import { PricingCard } from '@/components/PricingCard'
-import { LogOut, FileText } from 'lucide-react'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { useEffect, useState } from 'react'
-
-interface Profile {
-  subscription_status: string
-  stripe_customer_id: string | null
-}
 
 export default function Home() {
-  const { user, loading, signOut } = useSupabase()
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [profileLoading, setProfileLoading] = useState(true)
+  const { user, loading } = useSupabase()
 
-  useEffect(() => {
-    if (user) {
-      fetchProfile()
-    } else {
-      setProfileLoading(false)
-    }
-  }, [user])
-
-  const fetchProfile = async () => {
-    try {
-      const response = await fetch('/api/profile')
-      if (response.ok) {
-        const data = await response.json()
-        setProfile(data.profile)
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error)
-    } finally {
-      setProfileLoading(false)
-    }
-  }
-
-  if (loading || profileLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -49,108 +14,61 @@ export default function Home() {
     )
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <FileText className="h-16 w-16 text-blue-600" />
+  // Root becomes the marketing entry point.
+  // If logged in, bounce to the app.
+  if (user) {
+    if (typeof window !== 'undefined') window.location.href = '/app'
+    return null
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+      <div className="max-w-6xl mx-auto px-6 py-20">
+        <div className="text-center">
+          <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            ReceiptsFlow
+          </h1>
+          <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">
+            Turn receipts and invoices into clean, export-ready data in seconds.
+          </p>
+
+          <div className="mt-10 flex items-center justify-center gap-3">
+            <Link
+              href="/app"
+              className="inline-flex items-center rounded-md bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/landing"
+              className="inline-flex items-center rounded-md bg-white dark:bg-gray-900 px-5 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Learn more
+            </Link>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3 text-left">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-gray-900/50 p-6">
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Stop manual entry</div>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                Extract vendor, date, totals, and key fields automatically.
+              </p>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              ReceiptsFlow
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Extract data from receipts and invoices automatically using AI
-            </p>
-            <div className="max-w-md mx-auto">
-              <AuthForm />
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-gray-900/50 p-6">
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Built for bookkeeping</div>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                Great for contractors, agencies, landlords, and SMB owners.
+              </p>
+            </div>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-gray-900/50 p-6">
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Export-ready</div>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                Export to CSV / Google Sheets and keep your workflow moving.
+              </p>
             </div>
           </div>
         </div>
       </div>
-    )
-  }
-
-  const isSubscribed = profile?.subscription_status === 'active' || profile?.subscription_status === 'inactive' || !profile?.subscription_status
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <FileText className="h-8 w-8 text-blue-600 mr-3" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">ReceiptsFlow</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSfY20Fi4CaLbetCcnvZ2O7sjK3R555QjRMs1eun9SgpSN2I_g/viewform"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
-            >
-              Give feedback
-            </a>
-            <span className="text-sm text-gray-600 dark:text-gray-300">{user.email}</span>
-            <button
-              onClick={signOut}
-              className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Upload & Pricing */}
-          <div className="lg:col-span-1 space-y-6">
-            {isSubscribed ? (
-              <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  Upload Receipt
-                </h2>
-                <UploadZone />
-              </div>
-            ) : (
-              <PricingCard 
-                isSubscribed={isSubscribed} 
-                subscriptionStatus={profile?.subscription_status}
-              />
-            )}
-            
-            {isSubscribed && (
-              <PricingCard 
-                isSubscribed={isSubscribed} 
-                subscriptionStatus={profile?.subscription_status}
-              />
-            )}
-          </div>
-
-          {/* Documents List */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Your Documents
-              </h2>
-              {!isSubscribed ? (
-                <div className="text-center py-12">
-                  <FileText className="mx-auto h-12 w-12 text-gray-300" />
-                  <p className="mt-4 text-gray-500">Subscribe to start uploading</p>
-                  <p className="text-sm text-gray-400">Get unlimited receipt extractions</p>
-                </div>
-              ) : (
-                <DocumentList />
-              )}
-            </div>
-          </div>
-        </div>
-      </main>
     </div>
   )
 }
