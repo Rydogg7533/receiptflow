@@ -325,11 +325,16 @@ export function DocumentList() {
               onClick={async () => {
                 try {
                   setUndoing(true)
-                  await fetch('/api/documents/reopen-batch', {
+                  const res = await fetch('/api/documents/reopen-batch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ batchId: lastExport.batchId }),
                   })
+                  const json = await res.json().catch(() => null)
+                  if (!res.ok) throw new Error(json?.error || 'Failed to re-open batch')
+
+                  if (json?.message) alert(json.message)
+
                   setLastExport(null)
                   fetchDocuments()
                 } finally {
