@@ -151,17 +151,81 @@ export function DocumentList() {
     )
   }
 
+  const completedCount = documents.filter(d => d.status === 'completed').length
+
+  // Always render header + toggle even if there are no docs in the current view
   if (documents.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FileText className="mx-auto h-12 w-12 text-gray-300" />
-        <p className="mt-4 text-gray-500">No documents yet</p>
-        <p className="text-sm text-gray-400">Upload your first receipt to get started</p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowArchived(false)}
+              className={`px-3 py-2 text-sm font-medium rounded-md border ${
+                !showArchived ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+              }`}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => setShowArchived(true)}
+              className={`px-3 py-2 text-sm font-medium rounded-md border ${
+                showArchived ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300'
+              }`}
+            >
+              Archived
+            </button>
+          </div>
+
+          {completedCount > 0 && (
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={exportToCSV}
+                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download CSV
+              </button>
+
+              {googleConnected ? (
+                <button
+                  onClick={exportToGoogleSheets}
+                  disabled={exportingSheets}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {exportingSheets ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Exporting…
+                    </>
+                  ) : (
+                    <>
+                      <Sheet className="h-4 w-4 mr-2" />
+                      Export to Google Sheets
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={connectGoogle}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-black"
+                >
+                  <Sheet className="h-4 w-4 mr-2" />
+                  Connect Google
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="text-center py-12">
+          <FileText className="mx-auto h-12 w-12 text-gray-300" />
+          <p className="mt-4 text-gray-500">No documents in this view</p>
+          <p className="text-sm text-gray-400">Try switching Active / Archived</p>
+        </div>
       </div>
     )
   }
-
-  const completedCount = documents.filter(d => d.status === 'completed').length
 
   return (
     <div className="space-y-4">
