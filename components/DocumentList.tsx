@@ -397,13 +397,24 @@ export function DocumentList() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-3">
-                    <button
-                      onClick={() => toggleArchive(doc, !showArchived)}
-                      className="text-gray-700 hover:text-gray-900"
-                      title={showArchived ? 'Unarchive' : 'Archive'}
-                    >
-                      <Archive className="h-4 w-4" />
-                    </button>
+                    {showArchived ? (
+                      <button
+                        onClick={() => toggleArchive(doc, false)}
+                        className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        title="Restore to Active"
+                      >
+                        <Archive className="h-4 w-4 mr-2" />
+                        Restore to Active
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => toggleArchive(doc, true)}
+                        className="text-gray-700 hover:text-gray-900"
+                        title="Archive"
+                      >
+                        <Archive className="h-4 w-4" />
+                      </button>
+                    )}
 
                     <button
                       onClick={() => deleteDocument(doc.id)}
