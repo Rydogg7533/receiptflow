@@ -13,13 +13,13 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center space-x-4">
             <Link
-              href="/"
+              href="/login"
               className="text-gray-600 hover:text-gray-900 font-medium"
             >
               Sign In
             </Link>
             <Link
-              href="/"
+              href="/login"
               className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700"
             >
               Get Started
@@ -40,7 +40,7 @@ export default function LandingPage() {
           </p>
           <div className="flex justify-center space-x-4">
             <Link
-              href="/"
+              href="/login"
               className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-blue-700 flex items-center"
             >
               Start Free Trial
@@ -133,7 +133,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/"
+                  href="/login"
                   className="block w-full bg-blue-600 text-white text-center py-3 rounded-lg font-semibold hover:bg-blue-700"
                 >
                   Start Free Trial
@@ -157,7 +157,7 @@ export default function LandingPage() {
             Join hundreds of businesses that have automated their receipt processing with ReceiptsFlow.
           </p>
           <Link
-            href="/"
+            href="/login"
             className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 inline-flex items-center"
           >
             Get Started Free
