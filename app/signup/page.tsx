@@ -5,7 +5,7 @@ import { useSupabase } from '@/components/SupabaseProvider'
 import { AuthForm } from '@/components/AuthForm'
 import { FileText } from 'lucide-react'
 
-export default function LoginPage() {
+export default function SignupPage() {
   const { user, loading } = useSupabase()
 
   if (loading) {
@@ -31,10 +31,13 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center">
-            Sign in
+            Create your account
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 text-center">
-            New here? <Link href="/signup" className="text-blue-600 hover:underline">Create an account</Link>
+            Already have an account?{' '}
+            <Link href="/login" className="text-blue-600 hover:underline">
+              Sign in
+            </Link>
           </p>
 
           <div className="mt-8">
