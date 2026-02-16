@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?canceled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/app`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/app`,
       subscription_data: {
         metadata: {
           userId: session.user.id,
