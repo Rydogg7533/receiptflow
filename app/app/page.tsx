@@ -96,7 +96,9 @@ export default function AppPage() {
             >
               Give feedback
             </a>
-            <span className="text-sm text-gray-600 dark:text-gray-300">{user.email}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">
+              {process.env.NEXT_PUBLIC_DEMO_MODE === '1' ? 'Demo User' : user.email}
+            </span>
             <button
               onClick={signOut}
               className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"

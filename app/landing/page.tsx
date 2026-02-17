@@ -47,7 +47,32 @@ export default function LandingPage() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>
-          <p className="mt-4 text-sm text-gray-500">No credit card required. 14-day free trial.</p>
+
+          {/* Demo video module (centered) */}
+          <div className="mt-8 flex justify-center">
+            <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <div className="text-sm font-semibold text-gray-900">Demo workflow</div>
+                <div className="text-xs text-gray-500">~10s</div>
+              </div>
+              <div className="bg-gray-50">
+                <video
+                  className="w-full h-auto"
+                  src="/marketing/demo.mp4"
+                  playsInline
+                  muted
+                  loop
+                  controls
+                  preload="metadata"
+                />
+              </div>
+              <div className="px-4 py-3 text-sm text-gray-600">
+                Upload → extract → export (sample data)
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-6 text-sm text-gray-500">No credit card required. 14-day free trial.</p>
         </div>
       </section>
 
