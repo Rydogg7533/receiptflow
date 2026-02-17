@@ -55,7 +55,33 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // Check if user is trying to access protected platform routes
+  const isPlatformRoute =
+    request.nextUrl.pathname.startsWith('/dashboard') ||
+    request.nextUrl.pathname.startsWith('/receipts') ||
+    request.nextUrl.pathname.startsWith('/paystubs') ||
+    request.nextUrl.pathname.startsWith('/invoices') ||
+    request.nextUrl.pathname.startsWith('/expenses') ||
+    request.nextUrl.pathname.startsWith('/settings')
+
+  // Check if user is on auth pages
+  const isAuthPage =
+    request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/signup') ||
+    request.nextUrl.pathname.startsWith('/auth/')
+
+  // Redirect unauthenticated users from platform routes to login
+  if (!session && isPlatformRoute) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // Redirect authenticated users from auth pages to dashboard
+  if (session && isAuthPage && request.nextUrl.pathname !== '/auth/callback') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
   return response
 }
 
