@@ -14,7 +14,7 @@ export default function Sidebar() {
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: '📊' },
     { label: 'Receipts', href: '/receipts', icon: '📄' },
-    { label: 'Pay Stubs', href: '/paystubs', icon: '💰', disabled: true },
+    { label: 'Pay Stubs', href: '/paystubs', icon: '💰' },
     { label: 'Invoices', href: '/invoices', icon: '📋', disabled: true },
   ]
 

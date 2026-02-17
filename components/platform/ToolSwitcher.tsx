@@ -3,7 +3,7 @@
 export default function ToolSwitcher() {
   const tools = [
     { name: 'Receipts', icon: '📄', active: true },
-    { name: 'Pay Stubs', icon: '💰', active: false },
+    { name: 'Pay Stubs', icon: '💰', active: true },
     { name: 'Invoices', icon: '📋', active: false },
     { name: 'Expenses', icon: '💳', active: false },
   ]

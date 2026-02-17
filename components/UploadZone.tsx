@@ -53,17 +53,19 @@ export function UploadZone() {
         body: formData,
       })
 
+      const text = await response.text()
       if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(errorText)
+        throw new Error(text || `Upload failed (${response.status})`)
       }
 
-      const data = await response.json()
+      const data = text ? JSON.parse(text) : null
 
       // Update status to processing
       setUploadingFiles(prev =>
         prev.map(f => f.id === uploadingFile.id ? { ...f, status: 'processing', progress: 100 } : f)
       )
+
+      if (!data?.documentId) throw new Error('Upload succeeded but no documentId returned')
 
       // Start extraction (sequential)
       await extractData(data.documentId, uploadingFile.id)
@@ -73,6 +75,7 @@ export function UploadZone() {
 
     } catch (error) {
       console.error('Upload error:', error)
+      alert(`Upload error: ${error instanceof Error ? error.message : String(error)}`)
       setUploadingFiles(prev =>
         prev.map(f => f.id === uploadingFile.id ? { ...f, status: 'error' } : f)
       )
@@ -103,6 +106,7 @@ export function UploadZone() {
 
     } catch (error) {
       console.error('Extraction error:', error)
+      alert(`Extraction error: ${error instanceof Error ? error.message : String(error)}`)
       setUploadingFiles(prev =>
         prev.map(f => f.id === fileId ? { ...f, status: 'error' } : f)
       )
