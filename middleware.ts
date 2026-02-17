@@ -57,6 +57,11 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession()
 
+  // Redirect old /app route to new platform
+  if (request.nextUrl.pathname === '/app' || request.nextUrl.pathname.startsWith('/app/')) {
+    return NextResponse.redirect(new URL(session ? '/dashboard' : '/login', request.url))
+  }
+
   // Check if user is trying to access protected platform routes
   const isPlatformRoute =
     request.nextUrl.pathname.startsWith('/dashboard') ||
